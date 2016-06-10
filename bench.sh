@@ -1,4 +1,8 @@
 #!/bin/sh
+
+MINE=`dirname $0`
+source ${MINE}/env.sh
+
 ARGS="-r -t 60 -v 1 -c"
 OPTIND=0
 while getopts "i:o:" opt; do
@@ -19,6 +23,6 @@ if [[ $1 = "--" ]]; then
 	ARGS=("$@")
 fi
 
-mvn -f scheduler/bench/pom.xml exec:java\
+mvn -f ${ROOT}/scheduler/bench/pom.xml exec:java\
 	-Dexec.mainClass="org.btrplace.bench.Bench" \
 	-Dexec.args="-l ${INPUT} -o ${OUTPUT} ${ARGS}"

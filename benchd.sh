@@ -1,28 +1,29 @@
 #!/bin/bash
+MINE=`dirname $0`
+source ${MINE}/env.sh
+
 COMMIT="master"
 ARGS="-t 60 -r -v 1"
 
 #Get the code at commit $1 and install it
 fetch () {
-	cd scheduler
-	git pull
-	git checkout $1||exit 1
-	mvn -q install -DskipTests -Dgpg.skip||exit 1
-	cd -
+	git -C ${ROOT}/scheduler pull
+	git ${ROOT}/scheduler checkout $1||exit 1
+	mvn -f ${ROOT}/scheduler -q install -DskipTests -Dgpg.skip||exit 1
 }
 
 #Create the output directory in $1
 prepare () {
-	echo "Output will be in ${1}"
-	mkdir -p $1/{results,stdout,chunks}
+	echo "Output will be in ${ROOT}/${1}"
+	mkdir -p ${ROOT}/$1/{results,stdout,chunks}
 	# split the file per number of workers
 	workers=`cat $OAR_NODE_FILE|uniq|sort`
 	nb_workers=`cat $OAR_NODE_FILE|uniq|sort|wc -l`
 	# do the split
-	split workloads-tdsc/std.txt -n l/${nb_workers} $1/chunks/
-	cat $OAR_NODE_FILE|uniq|sort > $1/nodes
-	git -C scheduler rev-parse --short HEAD > $1/commit
-	echo ${PARAMS} > $1/params
+	split ${ROOT}/workloads-tdsc/std.txt -n l/${nb_workers} ${ROOT}/$1/chunks/
+	cat $OAR_NODE_FILE|uniq|sort > ${ROOT}/$1/nodes
+	git -C ${ROOT}/scheduler rev-parse --short HEAD > ${ROOT}/$1/commit
+	echo ${PARAMS} > ${ROOT}/$1/params
 }
 
 dispatch() {
@@ -30,12 +31,12 @@ dispatch() {
 	workers=`cat $OAR_NODE_FILE|uniq|sort`
 	arr=($workers)
 	i=0
-	for c in `ls ${LABEL}/chunks/*`; do
+	for c in `ls ${ROOT}/${LABEL}/chunks/*`; do
 		machine=${arr[$i]}
 		i=$(($i + 1))
 		chunk=`basename $c`
 		echo "Execute chunk ${chunk} on ${machine}"
-		cmd="source .profile; cd btrplace/bench-g5k; nohup ./bench.sh ${LABEL}/chunks/${chunk} ${LABEL}/results/${chunk} 2>&1 > ${LABEL}/stdout/${chunk}"
+		cmd="source .profile; cd ${ROOT}/bench-g5k; nohup ./bench.sh ${LABEL}/chunks/${chunk} ${LABEL}/results/${chunk} 2>&1 > ${LABEL}/stdout/${chunk}"
 		oarsh ${machine} ${cmd} &
 	done;
 	echo "Waiting for termination"
