@@ -1,3 +1,3 @@
 #!/bin/env
-ROOT="~/btrplace/"
-PUBLISH_DIR="~/public/"
+ROOT="~/btrplace"
+PUBLISH_DIR="~/public"

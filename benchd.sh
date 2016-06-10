@@ -7,9 +7,9 @@ ARGS="-t 60 -r -v 1"
 
 #Get the code at commit $1 and install it
 fetch () {
-	git -C ${ROOT}/scheduler pull
-	git ${ROOT}/scheduler checkout $1||exit 1
-	mvn -f ${ROOT}/scheduler -q install -DskipTests -Dgpg.skip||exit 1
+	git -C ${ROOT}/scheduler/ pull
+	git ${ROOT}/scheduler/ checkout $1||exit 1
+	mvn -f ${ROOT}/scheduler/ -q install -DskipTests -Dgpg.skip||exit 1
 }
 
 #Create the output directory in $1
