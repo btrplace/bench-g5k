@@ -30,7 +30,16 @@ Run the benchmark and publish the results in ~/public/label
   bench_params: will be passed to bench.sh. (default: '-t 60 -r -v 1')
 ````
 
+FYI, about bench.sh:
+````
+$ ./bench.sh -h                                                                                  
+Usage: ./bench.sh -i instances -o output [-- bench_params]
+Bench every instances and store the result
 
+  -i instances: a file listing the path of each instance file
+  -o output: the output directory
+  bench_params: will be passed to org.btrplace.bench.Bench (default: -r -t 60 -v 1 -c)
+`````
 
 
 
