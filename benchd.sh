@@ -84,7 +84,7 @@ if [[ $1 = "--" ]]; then
 	ARGS=("$@")
 fi
 
-echo "label: ${LABEL}\ncommit: ${COMMIT}\nargs: ${ARGS}"
+echo "root: ${ROOT}\nlabel: ${LABEL}\ncommit: ${COMMIT}\nargs: ${ARGS}"
 echo "--- Fetching and compiling commit ${COMMIT} ---"
 fetch ${COMMIT} || exit 1
 echo "--- Prepare ${LABEL} ---"
@@ -92,8 +92,8 @@ prepare ${LABEL} || exit 1
 echo "--- Run the bench ---"
 dispatch ${LABEL} "${PARAMS}"|| exit 1
 collect ${LABEL}|| exit 1
-echo "--- publish the results in `readlink ~/public/` ---"
-publish ${LABEL} ~/public/|| exit 1
+echo "--- publish the results in `readlink ${PUBLISH_DIR}` ---"
+publish ${LABEL} ${PUBLISH_DIR}|| exit 1
 echo "--- Cleaning the environment ---"
 clean ${LABEL}|| exit 1
 echo "Job done. Results available in the public directory of the site"
