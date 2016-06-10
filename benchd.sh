@@ -5,6 +5,18 @@ MINE=`dirname $0`
 COMMIT="master"
 PARAMS="-t 60 -r -v 1"
 
+#Print the usage
+usage() {
+cat << EOF
+Usage: $0 [-c commit] [-l label] [-- bench_params]
+Run the benchmark and publish the results in ${PUBLISH_DIR}/label
+
+  -c commit: use the given commit identifier for the scheduler. (default: $COMMIT)
+  -l label: identify the benchmark with the given label. (default is 'commit')
+  bench_params: will be passed to bench.sh. (default: '$PARAMS')
+EOF
+}
+
 #Get the code at commit $1 and install it
 fetch() {
 	git -C ${ROOT}/scheduler/ pull||exit 1
@@ -67,8 +79,12 @@ publish() {
 }
 
 OPTIND=0
-while getopts "w:c:l:p:" opt; do
+while getopts "w:c:l:p:h" opt; do
   	case $opt in
+		h)
+			usage
+			exit 0
+			;;
 		p)
 			PARAMS=$OPTARG;;
   		w)
@@ -79,6 +95,8 @@ while getopts "w:c:l:p:" opt; do
 			MY_LABEL=$OPTARG;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2
+			usage
+			exit 1
 			;;
 	esac
 done
@@ -103,6 +121,6 @@ progress ${ROOT}/${LABEL}||exit 1
 wait
 echo "--- Bench done, collecting results ---"
 collect $ROOT/${LABEL}|| exit 1
-echo "--- publish the results in ${PUBLISH_DIR}/${LABEL} ---"
-publish ${LABEL} ${PUBLISH_DIR}|| exit 1
+publish {LABEL} ${PUBLISH_DIR}|| exit 1
 rm -rf $ROOT/${LABEL}|| exit 1
+echo "Results published in ${PUBLISH_DIR}/${LABEL}"
