@@ -1,19 +1,19 @@
 #!/bin/bash
 MINE=`dirname $0`
-source ${MINE}/env.sh
+. ${MINE}/env.sh
 
 COMMIT="master"
-ARGS="-t 60 -r -v 1"
+PARAMS="-t 60 -r -v 1"
 
 #Get the code at commit $1 and install it
-fetch () {
-	git -C ${ROOT}/scheduler/ pull
-	git ${ROOT}/scheduler/ checkout $1||exit 1
+fetch() {
+	git -C ${ROOT}/scheduler/ pull||exit 1
+	git -C ${ROOT}/scheduler/ checkout $1||exit 1
 	mvn -f ${ROOT}/scheduler/ -q install -DskipTests -Dgpg.skip||exit 1
 }
 
 #Create the output directory in $1
-prepare () {
+prepare() {
 	echo "Output will be in ${ROOT}/${1}"
 	mkdir -p ${ROOT}/$1/{results,stdout,chunks}
 	# split the file per number of workers
@@ -36,64 +36,75 @@ dispatch() {
 		i=$(($i + 1))
 		chunk=`basename $c`
 		echo "Execute chunk ${chunk} on ${machine}"
-		cmd="source .profile; cd ${ROOT}/bench-g5k; nohup ./bench.sh ${LABEL}/chunks/${chunk} ${LABEL}/results/${chunk} 2>&1 > ${LABEL}/stdout/${chunk}"
+		cmd="source .profile; cd ${ROOT}/bench-g5k; nohup ./bench.sh -i ${ROOT}/${LABEL}/chunks/${chunk} -o ${ROOT}/${LABEL}/results/${chunk} -- ${PARAMS} &> ${ROOT}/${LABEL}/stdout/${chunk}"
 		oarsh ${machine} ${cmd} &
 	done;
-	echo "Waiting for termination"
-	wait
+}
+
+#Show the solving process where $1 is the result directory
+function progress() {
+	count=`cat $1/chunks/*|wc -l`
+	done=0
+	while [ $done -lt $count ]; do
+		sleep 5
+		done=`cat $1/results/*/scheduler.csv|wc -l`
+		echo "${done}/${count} done"
+	done
 }
 
 #aggregates all the scheduler.csv. $1 is the LABEL
 collect() {
-    cat $1/results/*/scheduler.csv|./reformat.pl > $1/scheduler.csv
-	./plot.R $1
+    cat $1/results/*/scheduler.csv|$MINE/reformat.pl > $1/scheduler.csv
+    $MINE/plot.R $1
 }
 
 #Copy the main results in $1 to another directory in $2
 publish() {
 	mkdir -p $2/$1
-	cp -r $1/{*.pdf, *.png, env, commit, scheduler.csv} $2/$1
-}
-
-#Clean the temporary produced files in $1
-clean() {
-	rm -rf $1/{chunks,results,stdout}
+	cp $ROOT/$1/*.pdf $2/$1
+	cp $ROOT/$1/*.png $2/$1
+	cp $ROOT/$1/{params,commit,scheduler.csv} $2/$1
 }
 
 OPTIND=0
 while getopts "w:c:l:p:" opt; do
-  case $opt in
+  	case $opt in
 		p)
 			PARAMS=$OPTARG;;
   		w)
 			CLUSTER=$OPTARG;;
 		c)
-			COMMIT="$OPTARG";;
+			COMMIT=$OPTARG;;
 		l)
-			MY_LABEL="$OPTARG";;
+			MY_LABEL=$OPTARG;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2
 			;;
-esac
+	esac
 done
-
+shift 
 LABEL=${MY_LABEL:-$COMMIT}
-shift "$((OPTIND-1))"
-if [[ $1 = "--" ]]; then
+if [ $# -gt 0 ]; then
+	echo YO
 	shift
-	ARGS=("$@")
+	PARAMS=$*
 fi
 
-echo "root: ${ROOT}\nlabel: ${LABEL}\ncommit: ${COMMIT}\nargs: ${ARGS}"
+echo "root: ${ROOT}"
+echo "label: ${LABEL}"
+echo "commit: ${COMMIT}"
+echo "args: ${PARAMS}"
+exit 1
 echo "--- Fetching and compiling commit ${COMMIT} ---"
 fetch ${COMMIT} || exit 1
 echo "--- Prepare ${LABEL} ---"
 prepare ${LABEL} || exit 1
 echo "--- Run the bench ---"
 dispatch ${LABEL} "${PARAMS}"|| exit 1
-collect ${LABEL}|| exit 1
-echo "--- publish the results in `readlink ${PUBLISH_DIR}` ---"
+progress ${ROOT}/${LABEL}||exit 1
+wait
+echo "--- Bench done, collecting results ---"
+collect $ROOT/${LABEL}|| exit 1
+echo "--- publish the results in ${PUBLISH_DIR}/${LABEL} ---"
 publish ${LABEL} ${PUBLISH_DIR}|| exit 1
-echo "--- Cleaning the environment ---"
-clean ${LABEL}|| exit 1
-echo "Job done. Results available in the public directory of the site"
+rm -rf $ROOT/${LABEL}|| exit 1

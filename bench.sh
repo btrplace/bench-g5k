@@ -1,14 +1,14 @@
 #!/bin/sh
 
 MINE=`dirname $0`
-source ${MINE}/env.sh
+. ${MINE}/env.sh
 
 ARGS="-r -t 60 -v 1 -c"
 OPTIND=0
 while getopts "i:o:" opt; do
 	case $opt in
 		i)
-			INPUT=`readlink -f $1`;;
+			INPUT=`readlink -f $OPTARG`;;
   		o)
 			OUTPUT=`readlink -f $OPTARG`;;
 		\?)
@@ -16,11 +16,9 @@ while getopts "i:o:" opt; do
 			;;
 	esac
 done
-
-shift "$((OPTIND-1))"
-if [[ $1 = "--" ]]; then
+if [ $1 == "--" ]; then
 	shift
-	ARGS=("$@")
+	ARGS=$@
 fi
 
 mvn -f ${ROOT}/scheduler/bench/pom.xml exec:java\
