@@ -82,11 +82,9 @@ while getopts "w:c:l:p:" opt; do
 			;;
 	esac
 done
-shift 
+shift $((OPTIND-1))  #This tells getopts to move on to the next argument.
 LABEL=${MY_LABEL:-$COMMIT}
 if [ $# -gt 0 ]; then
-	echo YO
-	shift
 	PARAMS=$*
 fi
 
@@ -94,7 +92,7 @@ echo "root: ${ROOT}"
 echo "label: ${LABEL}"
 echo "commit: ${COMMIT}"
 echo "args: ${PARAMS}"
-exit 1
+
 echo "--- Fetching and compiling commit ${COMMIT} ---"
 fetch ${COMMIT} || exit 1
 echo "--- Prepare ${LABEL} ---"
